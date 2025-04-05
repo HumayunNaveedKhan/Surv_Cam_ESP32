@@ -1,0 +1,60 @@
+#include <WiFi.h>
+#include <esp_camera.h>
+#include <HTTPClient.h>
+
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
+
+const char* serverName = "https://script.google.com/macros/s/AKfycbxrFQEOWlQZWG51tGkHE1I6KkhQHnBT7TVAz2TZ8Z-fZqqeMZ6z0vS01YTInnOQvA7J/exec";
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Connecting to WiFi...");
+  }
+  
+  Serial.println("Connected to WiFi");
+
+  // Initialize camera (use your specific camera config here)
+  camera_config_t config;
+  // Camera configuration here (set your pin mappings, resolution, etc.)
+  // Ensure camera_init() is called properly
+  esp_camera_init(&config);
+}
+
+void loop() {
+  // Capture the image from the camera
+  camera_fb_t *fb = esp_camera_fb_get();
+  
+  if (!fb) {
+    Serial.println("Camera capture failed");
+    return;
+  }
+
+  // Encode the image in base64
+  String base64Image = base64::encode(fb->buf, fb->len);
+  esp_camera_fb_return(fb);
+
+  // Send the base64 image via HTTP POST to Google Script Web App
+  HTTPClient http;
+  http.begin(serverName);
+
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  String payload = "image=" + base64Image;
+  
+  int httpResponseCode = http.POST(payload);
+  
+  if (httpResponseCode > 0) {
+    Serial.println("Image uploaded successfully");
+  } else {
+    Serial.println("Error during upload, code: " + String(httpResponseCode));
+  }
+  
+  http.end();
+
+  // Wait before capturing the next image
+  delay(10000);  // Adjust the delay as needed
+}
