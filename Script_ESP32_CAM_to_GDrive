@@ -1,0 +1,42 @@
+// This is the function that handles HTTP GET requests
+function doGet(e) {
+  return ContentService.createTextOutput("Welcome to the ESP32-CAM image upload service!");
+}
+function doPost(e) {
+  try {
+    // Log the incoming request data
+    Logger.log("Received POST request");
+    
+    // Check if 'image' parameter exists
+    var imageData = e.parameter.image;  // Base64-encoded image data
+    
+    if (!imageData) {
+      Logger.log("Error: No image data in the request");
+      return ContentService.createTextOutput("Error: No image data found.");
+    }
+    
+    // Log the first part of the image data for debugging
+    Logger.log("Received Image data: " + imageData.substring(0, 100)); 
+    
+    // Decode the base64 string to binary data
+    var decodedImage = Utilities.base64Decode(imageData);
+    
+    // Define the folder to store the image (use your folder ID here)
+    var folder = DriveApp.getFolderById("14cET2hbTFWfZFEaTpoDEj3BbidaUlqqa");  // Change to your actual folder ID
+    var file = folder.createFile(decodedImage);  // Create a new file with the image data
+    
+    // Optionally, give the file a unique name based on the current timestamp
+    file.setName("Uploaded_Image_" + new Date().getTime() + ".jpg");
+    
+    // Log the success
+    Logger.log("File saved to Google Drive: " + file.getName());
+    
+    // Return success message
+    return ContentService.createTextOutput("Image uploaded successfully to Google Drive.");
+    
+  } catch (error) {
+    // Catch any errors and log them
+    Logger.log("Error during upload: " + error.message);
+    return ContentService.createTextOutput("Error: " + error.message);
+  }
+}
